@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ogl/pkg/analyzer"
+	"github.com/observeinc/ogl/pkg/analyzer"
 
 	"golang.org/x/tools/go/analysis"
 )
