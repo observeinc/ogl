@@ -1,4 +1,4 @@
-module ogl
+module github.com/observeinc/ogl
 
 go 1.15
 
