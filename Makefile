@@ -1,12 +1,8 @@
 all: build
 
-.PHONY: install
-install:
-	go install ogl/cmd/ogl
-
 .PHONY: build
 build: plugin
-	go build ogl/cmd/ogl
+	go build ./cmd/ogl/main.go
 
 .PHONY: plugin
 plugin:
@@ -14,7 +10,7 @@ plugin:
 
 .PHONY: test
 test:
-	go test -modcacherw -v ogl/...
+	go test -modcacherw -v ./...
 
 .PHONY: clean
 clean:
