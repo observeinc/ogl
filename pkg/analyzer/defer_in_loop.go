@@ -3,6 +3,7 @@ package analyzer
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -10,11 +11,11 @@ import (
 )
 
 func init() {
-	registerAnalyzer(getDeferInloopAnalyzer())
+	registerAnalyzer(getDeferInLoopAnalyzer())
 }
 
-// getDeferInloopAnalyzer builds and returns an Analyzer for the defer-in-loop check.
-func getDeferInloopAnalyzer() *analysis.Analyzer {
+// getDeferInLoopAnalyzer builds and returns an Analyzer for the defer-in-loop check.
+func getDeferInLoopAnalyzer() *analysis.Analyzer {
 	return &analysis.Analyzer{
 		Name:     "deferInLoop",
 		Doc:      "Checks that there are no defer statements in loops",
@@ -25,49 +26,31 @@ func getDeferInloopAnalyzer() *analysis.Analyzer {
 
 // checkDeferInLoop checks if a defer statement exists anywhere in a loop and flags it as an issue.
 func checkDeferInLoop(pass *analysis.Pass) (interface{}, error) {
+	loopEnd := token.Pos(0)
 	visitor := func(node ast.Node) {
-		var stmts []ast.Stmt
 		switch s := node.(type) {
 		case *ast.ForStmt:
-			stmts = make([]ast.Stmt, len(s.Body.List))
-			copy(stmts, s.Body.List)
+			if s.End() > loopEnd {
+				loopEnd = s.End()
+			}
 		case *ast.RangeStmt:
-			stmts = make([]ast.Stmt, len(s.Body.List))
-			copy(stmts, s.Body.List)
+			if s.End() > loopEnd {
+				loopEnd = s.End()
+			}
+		case *ast.DeferStmt:
+			if s.Pos() < loopEnd {
+				pass.Reportf(s.Pos(), "found defer statement in loop")
+			}
 		default:
 			// this shouldn't happen, the filter below shouldn't let this happen
 			panic(fmt.Sprintf("Unexpected statement of type %T received", s))
-		}
-		for len(stmts) > 0 {
-			switch s := stmts[0].(type) {
-			case *ast.DeferStmt:
-				pass.Reportf(s.Pos(), "found defer statement in loop")
-			case *ast.IfStmt:
-				stmts = append(stmts, s.Body)
-				stmts = append(stmts, s.Else)
-			case *ast.BlockStmt:
-				stmts = append(stmts, s.List...)
-			case *ast.TypeSwitchStmt:
-				stmts = append(stmts, s.Body)
-			case *ast.SwitchStmt:
-				stmts = append(stmts, s.Body)
-			case *ast.CaseClause:
-				stmts = append(stmts, s.Body...)
-			case *ast.SelectStmt:
-				stmts = append(stmts, s.Body)
-			case *ast.CommClause:
-				stmts = append(stmts, s.Body...)
-			default:
-				// some other type of statement that we don't care about.
-				// Note, nested for/range loops will get their own call to inspect.
-			}
-			stmts = stmts[1:]
 		}
 	}
 
 	nodeFilter := []ast.Node{
 		(*ast.ForStmt)(nil),
 		(*ast.RangeStmt)(nil),
+		(*ast.DeferStmt)(nil),
 	}
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	insp.Preorder(nodeFilter, visitor)
