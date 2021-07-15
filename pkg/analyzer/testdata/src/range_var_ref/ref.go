@@ -17,6 +17,7 @@ type myStruct struct {
 func lists() {
 	lst := []myStruct{}
 	for _, l := range lst {
+		_ = l
 		fmt.Println("addr: %v", &l)   // want "taking reference of range variable l or its field"
 		fmt.Println("addr: %v", &l.o) // want "taking reference of range variable l or its field"
 		for _, m := range lst {
