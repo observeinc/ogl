@@ -14,7 +14,7 @@ import (
 const (
 	// max number of range variables we expect. This is just for preallocating memory.
 	// 2 range vars per loop * 5 levels of nesting should be good enough for real world code.
-	expectedMaxRangeVars = 5
+	expectedMaxRangeVars = 10
 )
 
 func init() {
